@@ -20,7 +20,8 @@ type AcronymResponse struct {
 type History []AcronymResponse
 
 type AcronymHandler struct {
-	history *History
+	bufferSize *int
+	history    *History
 }
 
 func (ah AcronymHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -41,11 +42,20 @@ func (ah AcronymHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Acronym: acronym,
 		}
 
-		*ah.history = append(*ah.history, response)
+		ah.Record(response)
 		json.NewEncoder(w).Encode(response)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func (ah AcronymHandler) Record(ar AcronymResponse) {
+	if len(*ah.history) >= *ah.bufferSize {
+		// Keep 1 slot open for the new item to add
+		startIndex := len(*ah.history) - *ah.bufferSize + 1
+		*ah.history = (*ah.history)[startIndex:]
+	}
+	*ah.history = append(*ah.history, ar)
 }
 
 func acronymFrom(name string) string {
@@ -84,10 +94,11 @@ func (hh HistoryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	bufferSize := 20
 	var history History
 
 	mux := http.NewServeMux()
-	mux.Handle("/acronym", AcronymHandler{&history})
+	mux.Handle("/acronym", AcronymHandler{&bufferSize, &history})
 	mux.Handle("/history", HistoryHandler{&history})
 
 	log.Fatal(http.ListenAndServe(":8080", mux))
