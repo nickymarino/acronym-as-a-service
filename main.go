@@ -36,7 +36,14 @@ func (ah AcronymHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		var ac AcronymRequest
 
 		if err := json.NewDecoder(r.Body).Decode(&ac); err != nil {
+			// Fail if JSON is bad
 			http.Error(w, "Can't decode body", http.StatusBadRequest)
+			return
+		}
+
+		if len(ac.Name) == 0 {
+			// Fail if name is empty
+			http.Error(w, "Name cannot be blank", http.StatusBadRequest)
 			return
 		}
 
