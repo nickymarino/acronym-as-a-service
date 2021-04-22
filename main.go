@@ -99,14 +99,13 @@ func (hh HistoryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		if len(*hh.history) == 0 {
-			http.Error(w, "Error: No acronym history found", http.StatusNotFound)
+			http.Error(w, "No history found", http.StatusNotFound)
 			return
 		}
 
 		json.NewEncoder(w).Encode(hh.history)
 	default:
-		json.NewEncoder(w).Encode(hh.history)
-		// http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 

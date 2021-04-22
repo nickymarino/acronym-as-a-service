@@ -73,3 +73,74 @@ func TestAcronymHandler(t *testing.T) {
 		})
 	}
 }
+
+func TestHistoryHandler(t *testing.T) {
+	tt := []struct {
+		name       string
+		method     string
+		bufferSize int
+		history    History
+		want       string
+		statusCode int
+	}{
+		{
+			name:       "empty history",
+			method:     http.MethodGet,
+			history:    History{},
+			want:       "No history found",
+			statusCode: http.StatusNotFound,
+		},
+		{
+			name:       "invalid POST method",
+			method:     http.MethodPost,
+			history:    History{},
+			want:       "Method not allowed",
+			statusCode: http.StatusMethodNotAllowed,
+		},
+		{
+			name:   "one history item",
+			method: http.MethodGet,
+			history: History{
+				{
+					Name:    "Neopets Bank",
+					Acronym: "NB",
+				},
+			},
+			want:       `[{"name":"Neopets Bank","acronym":"NB"}]`,
+			statusCode: http.StatusOK,
+		},
+		{
+			name:   "two history items",
+			method: http.MethodGet,
+			history: History{
+				{
+					Name:    "Neopets Bank",
+					Acronym: "NB",
+				},
+				{
+					Name:    "Webkinz Technology",
+					Acronym: "WT",
+				},
+			},
+			want:       `[{"name":"Neopets Bank","acronym":"NB"},{"name":"Webkinz Technology","acronym":"WT"}]`,
+			statusCode: http.StatusOK,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			request := httptest.NewRequest(tc.method, "/history", nil)
+			responseRecorder := httptest.NewRecorder()
+
+			HistoryHandler{&tc.history}.ServeHTTP(responseRecorder, request)
+
+			if responseRecorder.Code != tc.statusCode {
+				t.Errorf("Want status '%d', got '%d'", tc.statusCode, responseRecorder.Code)
+			}
+
+			if strings.TrimSpace(responseRecorder.Body.String()) != tc.want {
+				t.Errorf("Want '%s', got '%s'", tc.want, responseRecorder.Body)
+			}
+		})
+	}
+}
